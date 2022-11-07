@@ -164,11 +164,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@balancer-labs/v2-deployments@workspace:pkg/deployments":
+"@balancer-labs/v2-deployments@^3.0.0, @balancer-labs/v2-deployments@workspace:pkg/deployments":
   version: 0.0.0-use.local
   resolution: "@balancer-labs/v2-deployments@workspace:pkg/deployments"
   dependencies:
     "@balancer-labs/balancer-js": "workspace:*"
+    "@balancer-labs/v2-deployments": ^3.0.0
     "@balancer-labs/v2-helpers": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.6
     "@nomiclabs/hardhat-etherscan": ^3.1.2

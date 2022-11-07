@@ -57,5 +57,8 @@
   "peerDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "hardhat": "^2.8.3"
+  },
+  "dependencies": {
+    "@balancer-labs/v2-deployments": "^3.0.0"
   }
 }
