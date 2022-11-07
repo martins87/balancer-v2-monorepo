@@ -28,15 +28,14 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.
 import "./CompoundLinearPool.sol";
 import "./CompoundLinearPoolRebalancer.sol";
 
-// contract CompoundLinearPoolFactory is
-//     ILastCreatedPoolFactory,
-//     BasePoolFactory,
-//     ReentrancyGuard,
-//     FactoryWidePauseWindow
-// {
-contract CompoundLinearPoolFactory is BasePoolFactory, FactoryWidePauseWindow {
+contract CompoundLinearPoolFactory is
+    ILastCreatedPoolFactory,
+    BasePoolFactory,
+    ReentrancyGuard,
+    FactoryWidePauseWindow
+{
     // Used for create2 deployments
-    // uint256 private _nextRebalancerSalt;
+    uint256 private _nextRebalancerSalt;
 
     IBalancerQueries private immutable _queries;
 
@@ -50,29 +49,20 @@ contract CompoundLinearPoolFactory is BasePoolFactory, FactoryWidePauseWindow {
         _queries = queries;
     }
 
-    // function getLastCreatedPool() external view override returns (address) {
-    //     return _lastCreatedPool;
-    // }
+    function getLastCreatedPool() external view override returns (address) {
+        return _lastCreatedPool;
+    }
 
-    // function _create(bytes memory constructorArgs) internal virtual override returns (address) {
-    //     address pool = super._create(constructorArgs);
-    //     _lastCreatedPool = pool;
+    function _create(bytes memory constructorArgs) internal virtual override returns (address) {
+        address pool = super._create(constructorArgs);
+        _lastCreatedPool = pool;
 
-    //     return pool;
-    // }
+        return pool;
+    }
 
     /**
      * @dev Deploys a new `CompoundLinearPool`.
      */
-    // function create(
-    //     string memory name,
-    //     string memory symbol,
-    //     IERC20 mainToken,
-    //     IERC20 wrappedToken,
-    //     uint256 upperTarget,
-    //     uint256 swapFeePercentage,
-    //     address owner
-    // ) external nonReentrant returns (CompoundLinearPool) {
     function create(
         string memory name,
         string memory symbol,
@@ -81,8 +71,8 @@ contract CompoundLinearPoolFactory is BasePoolFactory, FactoryWidePauseWindow {
         uint256 upperTarget,
         uint256 swapFeePercentage,
         address owner
-    ) external returns (LinearPool) {
-        // We are going to deploy both an AaveLinearPool and an AaveLinearPoolRebalancer set as its Asset Manager, but
+    ) external nonReentrant returns (CompoundLinearPool) {
+        // We are going to deploy both an CompoundLinearPool and an CompoundLinearPoolRebalancer set as its Asset Manager, but
         // this creates a circular dependency problem: the Pool must know the Asset Manager's address in order to call
         // `IVault.registerTokens` with it, and the Asset Manager must know about the Pool in order to store its Pool
         // ID, wrapped and main tokens, etc., as immutable variables.
@@ -96,49 +86,32 @@ contract CompoundLinearPoolFactory is BasePoolFactory, FactoryWidePauseWindow {
         // the Pool's address. To work around this, we have the Rebalancer fetch this address from `getLastCreatedPool`,
         // which will hold the Pool's address after we call `_create`.
 
-        // bytes32 rebalancerSalt = bytes32(_nextRebalancerSalt);
-        // _nextRebalancerSalt += 1;
+        bytes32 rebalancerSalt = bytes32(_nextRebalancerSalt);
+        _nextRebalancerSalt += 1;
 
-        // bytes memory rebalancerCreationCode = abi.encodePacked(
-        //     type(CompoundLinearPoolRebalancer).creationCode,
-        //     abi.encode(getVault(), _queries)
-        // );
-        // address expectedRebalancerAddress = Create2.computeAddress(rebalancerSalt, keccak256(rebalancerCreationCode));
+        bytes memory rebalancerCreationCode = abi.encodePacked(
+            type(CompoundLinearPoolRebalancer).creationCode,
+            abi.encode(getVault(), _queries)
+        );
+        address expectedRebalancerAddress = Create2.computeAddress(rebalancerSalt, keccak256(rebalancerCreationCode));
 
         (uint256 pauseWindowDuration, uint256 bufferPeriodDuration) = getPauseConfiguration();
 
-        // CompoundLinearPool.ConstructorArgs memory args = CompoundLinearPool.ConstructorArgs({
-        //     vault: getVault(),
-        //     name: name,
-        //     symbol: symbol,
-        //     mainToken: mainToken,
-        //     wrappedToken: wrappedToken,
-        //     assetManager: expectedRebalancerAddress,
-        //     upperTarget: upperTarget,
-        //     swapFeePercentage: swapFeePercentage,
-        //     pauseWindowDuration: pauseWindowDuration,
-        //     bufferPeriodDuration: bufferPeriodDuration,
-        //     owner: owner
-        // });
+        CompoundLinearPool.ConstructorArgs memory args = CompoundLinearPool.ConstructorArgs({
+            vault: getVault(),
+            name: name,
+            symbol: symbol,
+            mainToken: mainToken,
+            wrappedToken: wrappedToken,
+            assetManager: expectedRebalancerAddress,
+            upperTarget: upperTarget,
+            swapFeePercentage: swapFeePercentage,
+            pauseWindowDuration: pauseWindowDuration,
+            bufferPeriodDuration: bufferPeriodDuration,
+            owner: owner
+        });
 
-        // CompoundLinearPool pool = CompoundLinearPool(_create(abi.encode(args)));
-        // CompoundLinearPool pool = CompoundLinearPool(
-        LinearPool pool = CompoundLinearPool(
-            _create(
-                abi.encode(
-                    getVault(),
-                    name,
-                    symbol,
-                    mainToken,
-                    wrappedToken,
-                    upperTarget,
-                    swapFeePercentage,
-                    pauseWindowDuration,
-                    bufferPeriodDuration,
-                    owner
-                )
-            )
-        );
+        CompoundLinearPool pool = CompoundLinearPool(_create(abi.encode(args)));
 
         // LinearPools have a separate post-construction initialization step: we perform it here to
         // ensure deployment and initialization are atomic.
@@ -146,8 +119,8 @@ contract CompoundLinearPoolFactory is BasePoolFactory, FactoryWidePauseWindow {
 
         // Not that the Linear Pool's deployment is complete, we can deploy the Rebalancer, verifying that we correctly
         // predicted its deployment address.
-        // address actualRebalancerAddress = Create2.deploy(0, rebalancerSalt, rebalancerCreationCode);
-        // require(expectedRebalancerAddress == actualRebalancerAddress, "Rebalancer deployment failed");
+        address actualRebalancerAddress = Create2.deploy(0, rebalancerSalt, rebalancerCreationCode);
+        require(expectedRebalancerAddress == actualRebalancerAddress, "Rebalancer deployment failed");
 
         // We don't return the Rebalancer's address, but that can be queried in the Vault by calling `getPoolTokenInfo`.
         return pool;

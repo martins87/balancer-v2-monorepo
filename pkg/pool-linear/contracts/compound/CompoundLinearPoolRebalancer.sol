@@ -15,7 +15,7 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "@balancer-labs/v2-interfaces/contracts/pool-linear/IStaticAToken.sol";
+import "@balancer-labs/v2-interfaces/contracts/pool-linear/ICToken.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
 
@@ -37,13 +37,13 @@ contract CompoundLinearPoolRebalancer is LinearPoolRebalancer {
         // No referral code, depositing from underlying (i.e. DAI, USDC, etc. instead of aDAI or aUSDC). Before we can
         // deposit however, we need to approve the wrapper in the underlying token.
         _mainToken.safeApprove(address(_wrappedToken), amount);
-        IStaticAToken(address(_wrappedToken)).deposit(address(this), amount, 0, true);
+        ICToken(address(_wrappedToken)).deposit(address(this), amount, 0, true);
     }
 
     function _unwrapTokens(uint256 amount) internal override {
         // Withdrawing into underlying (i.e. DAI, USDC, etc. instead of aDAI or aUSDC). Approvals are not necessary here
         // as the wrapped token is simply burnt.
-        IStaticAToken(address(_wrappedToken)).withdraw(address(this), amount, true);
+        ICToken(address(_wrappedToken)).withdraw(address(this), amount, true);
     }
 
     function _getRequiredTokensToWrap(uint256 wrappedAmount) internal view override returns (uint256) {
@@ -51,6 +51,6 @@ contract CompoundLinearPoolRebalancer is LinearPoolRebalancer {
         // divisions and multiplications with rounding involved, this value might be off by one. We add one to ensure
         // the returned value will always be enough to get `wrappedAmount` when unwrapping. This might result in some
         // dust being left in the Rebalancer.
-        return IStaticAToken(address(_wrappedToken)).staticToDynamicAmount(wrappedAmount) + 1;
+        return ICToken(address(_wrappedToken)).staticToDynamicAmount(wrappedAmount) + 1;
     }
 }

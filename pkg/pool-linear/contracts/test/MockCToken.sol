@@ -45,6 +45,10 @@ contract MockCToken is TestToken {
         // _scaleSharesToFP = FixedPoint.ONE * 10**shareDecimalsDifference;
     }
 
+    function getRate() external view returns (uint256) {
+        return _rate;
+    }
+
     function setRate(uint256 newRate) external {
         _rate = newRate;
     }
