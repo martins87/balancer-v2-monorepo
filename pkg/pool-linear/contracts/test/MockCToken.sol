@@ -14,9 +14,11 @@
 
 pragma solidity ^0.7.0;
 
+import "@balancer-labs/v2-interfaces/contracts/pool-linear/ICToken.sol";
+
 import "@balancer-labs/v2-solidity-utils/contracts/test/TestToken.sol";
 
-contract MockCToken is TestToken {
+contract MockCToken is TestToken, ICToken {
     // using FixedPoint for uint256;
 
     // rate scaled to 2e16
@@ -53,24 +55,28 @@ contract MockCToken is TestToken {
         _rate = newRate;
     }
 
-    // function rate() external pure override returns (uint256) {
-    //     revert("Should not call this");
-    // }
+    function rate() external pure override returns (uint256) {
+        revert("Should not call this");
+    }
 
-    // function deposit(
-    //     address,
-    //     uint256,
-    //     uint16,
-    //     bool
-    // ) external pure override returns (uint256) {
-    //     return 0;
-    // }
+    function deposit(
+        address,
+        uint256,
+        uint16,
+        bool
+    ) external pure override returns (uint256) {
+        return 0;
+    }
 
-    // function withdraw(
-    //     address,
-    //     uint256,
-    //     bool
-    // ) external pure override returns (uint256, uint256) {
-    //     return (0, 0);
-    // }
+    function withdraw(
+        address,
+        uint256,
+        bool
+    ) external pure override returns (uint256, uint256) {
+        return (0, 0);
+    }
+
+    function staticToDynamicAmount(uint256 amount) external pure override returns (uint256) {
+        return amount;
+    }
 }
